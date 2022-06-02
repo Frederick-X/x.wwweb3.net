@@ -23,7 +23,7 @@ article:
     # '实用脚本': '#009688'
   share: [wechat, weibo, email, link]
   related_posts:
-    enable: true
+    enable: false
     auto_cover: true
 
 comments:

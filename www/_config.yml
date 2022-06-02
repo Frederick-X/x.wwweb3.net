@@ -5,6 +5,7 @@
 # Site
 title: FrederiX
 subtitle: 'All in web3. | https://x.wwweb3.net'
+favicon: /meta/favicon.png
 description: ''
 keywords:
 author: Frederick
@@ -15,7 +16,7 @@ timezone: ''
 # URL
 ## Set your site url here. For example, if you use GitHub Page, set url as 'https://username.github.io/project'
 url: https://i.wwweb3.net
-permalink: :year/:month/:day/:title/
+permalink: :title/
 permalink_defaults:
 pretty_urls:
   trailing_index: true # Set to false to remove trailing 'index.html' from permalinks
@@ -28,6 +29,7 @@ tag_dir: tags
 archive_dir: archives
 category_dir: categories
 code_dir: downloads/code
+wiki_dir: wiki
 i18n_dir: :lang
 skip_render:
 
@@ -41,7 +43,10 @@ external_link:
   exclude: ''
 filename_case: 0
 render_drafts: false
-post_asset_folder: false
+post_asset_folder: true
+marked:
+  prependRoot: true
+  postAsset: true
 relative_link: false
 future: true
 highlight:

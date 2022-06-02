@@ -24,12 +24,12 @@ article:
   share: [wechat, weibo, email, link]
   related_posts:
     enable: true
-    auto_cover: false
+    auto_cover: true
 
 comments:
   service: beaudar
   beaudar:
-    repo: xaoxuu/blog-comments
+    repo: Frederick-X/x.wwweb3.net
 
 footer:
   social:

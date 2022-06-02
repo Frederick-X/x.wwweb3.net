@@ -1,0 +1,3 @@
+[submodule "www/themes/stellar"]
+	path = www/themes/stellar
+	url = https://github.com/Frederick-X/hexo-theme-stellar.git

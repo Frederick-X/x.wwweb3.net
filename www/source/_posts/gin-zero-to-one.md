@@ -5,11 +5,13 @@ updated: 2022-06-03 23:40:41
 tags: [gin, golang]
 ---
 
-Gin是用Go（Golang）编写的HTTP Web框架。它具有类似马提尼的API，但性能比马提尼快40倍。如果你追求极致的性能，不妨试试Gin。
+Gin是用Go（Golang）编写的HTTP Web框架。它具有类似Martini的API，但性能比Martini快40倍。如果你追求极致的性能，不妨试试Gin。
 
 <!-- more -->
 
-## Quickstart
+{% ghcard gin-gonic/gin theme:dark %}
+
+## 快速开始
 
 ```go
 package main
@@ -136,9 +138,89 @@ output:
 
 {% endfolding %}
 
+## 入门
 
+### ShouldBindUri实现uri的模式约束
 
+在[快速开始](#快速开始)末尾处的例子介绍了如何获取url中的变量。而这些例子都无法约束参数的类型。
 
+下面的例子介绍使用ShouldBindUri方法提取uri中的参数。
 
+```go
+type Book struct {
+	ID   int    `uri:"id" binding:"required"`
+	Name string `uri:"name" binding:"required"`
+}
 
+func main() {
+	r := gin.Default()
+	book := r.Group("/book")
+	{
+		book.GET("/:id/:name", bookDetail)
+	}
+	r.Run(":8080")
+}
 
+func bookDetail(c *gin.Context) {
+	var book Book
+	if err := c.ShouldBindUri(&book); err != nil {
+		c.Status(404)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"id":   book.ID,
+		"name": book.Name,
+	})
+}
+```
+
+### 从GET和POST中获取参数
+
+{% folding 获取GET参数 %}
+
+```go
+func main() {
+	r := gin.Default()
+	book := r.Group("/book")
+	{
+		//url: http://127.0.0.1:8080/book?id=2&name=mybook
+		book.GET("", bookDetail)
+	}
+	r.Run(":8080")
+}
+
+func bookDetail(c *gin.Context) {
+	bookId := c.Query("id")
+	bookName := c.DefaultQuery("name", "None") // defaultValue is needed
+	c.JSON(http.StatusOK, gin.H{
+		"id":   bookId,
+		"name": bookName,
+	})
+}
+```
+
+{% endfolding %}
+
+{% folding 获取POST参数 %}
+
+```go
+func main() {
+	r := gin.Default()
+	book := r.Group("/book")
+	{
+		book.POST("", createBook)
+	}
+	r.Run(":8080")
+}
+
+func createBook(c *gin.Context) {
+	bookId := c.PostForm("id")
+	bookName := c.DefaultPostForm("name", "None") // defaultValue is needed
+	c.JSON(http.StatusOK, gin.H{
+		"id":   bookId,
+		"name": bookName,
+	})
+}
+```
+
+{% endfolding %}

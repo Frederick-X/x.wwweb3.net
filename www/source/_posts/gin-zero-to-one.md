@@ -2,6 +2,7 @@
 title: Gin Web Framework 从入门到精通
 date: 2022-06-03 23:40:41
 updated: 2022-06-03 23:40:41
+categories: [技术加油站]
 tags: [gin, golang]
 ---
 

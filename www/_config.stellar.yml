@@ -20,7 +20,7 @@ article:
     '开源库': '#4caf50'
     '博客主题': '#ffa000'
     # '应用程序': '#e91e63'
-    # '实用脚本': '#009688'
+    '实用工具': '#009688'
   share: [wechat, weibo, email, link]
   related_posts:
     enable: false

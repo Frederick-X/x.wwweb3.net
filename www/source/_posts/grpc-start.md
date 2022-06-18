@@ -2,6 +2,7 @@
 title: go + python 快速入门grpc
 date: 2022-06-13 22:42:10
 updated: 2022-06-13 22:42:10
+categories: [技术加油站]
 tags: [go, python, grpc, 微服务]
 ---
 
@@ -190,7 +191,13 @@ if __name__ == '__main__':
 
 
 
+## go gRPC开发
 
+安装 protobuf编译工具
+
+```
+brew install protobuf
+```
 
 
 

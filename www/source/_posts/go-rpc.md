@@ -2,6 +2,7 @@
 title: go语言rpc开发
 date: 2022-06-13 00:37:44
 updated: 2022-06-13 00:37:44
+categories: [技术加油站]
 tags: [go, rpc]
 ---
 

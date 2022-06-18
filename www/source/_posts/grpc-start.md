@@ -122,28 +122,7 @@ World
 `helloworld.proto`文件内容如下：
 
 ```protobuf
-// Copyright 2015 gRPC authors.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 syntax = "proto3";
-
-option java_multiple_files = true;
-option java_package = "io.grpc.examples.helloworld";
-option java_outer_classname = "HelloWorldProto";
-option objc_class_prefix = "HLW";
-
-package helloworld;
 
 // The greeting service definition.
 service Greeter {
@@ -162,7 +141,52 @@ message HelloReply {
 }
 ```
 
+生成对应的python文件
 
+```
+python -m grpc_tools.protoc --python_out=. --grpc_python_out=. -I. hello.proto
+```
+
+
+
+编写`server.py`，内容如下：
+
+```python
+from proto import hello_pb2, hello_pb2_grpc
+import grpc
+from concurrent import futures
+
+
+class Greeter(hello_pb2_grpc.GreeterServicer):
+    def SayHello(self, request, context):
+        return hello_pb2.HelloReply(message=f"Hello, {request.name}")
+
+
+if __name__ == "__main__":
+    # Instantiation a Server
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    # Register the logic into the server
+    hello_pb2_grpc.add_GreeterServicer_to_server(Greeter(), server)
+    # Start server
+    server.add_insecure_port('0.0.0.0:50051')
+    server.start()
+    server.wait_for_termination()
+```
+
+
+
+编写`client.py`：
+
+```python
+from proto import hello_pb2, hello_pb2_grpc
+import grpc
+
+if __name__ == '__main__':
+    with grpc.insecure_channel("127.0.0.1:50051") as channel:
+        stub = hello_pb2_grpc.GreeterStub(channel)
+        rsp: hello_pb2.HelloReply = stub.SayHello(hello_pb2.HelloRequest(name='World'))
+        print(rsp.message)
+```
 
 
 

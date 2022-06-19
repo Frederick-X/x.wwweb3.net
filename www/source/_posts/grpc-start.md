@@ -199,19 +199,406 @@ if __name__ == '__main__':
 brew install protobuf
 ```
 
+安装依赖
+
+```
+go install github.com/golang/protobuf/protoc-gen-go@v1.4.0
+```
+
+创建`hello.proto`文件，除`option go_package = ".;proto";`外，其余部分与python中一致。
+
+```protobuf
+syntax = "proto3";
+option go_package = ".;proto";
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message HelloReply {
+  string message = 1;
+}
+```
+
+
+
+在当前目录下执行
+
+```
+protoc -I . hello.proto --go_out=plugins=grpc:.
+```
+
+可以看到目录下生成了一个`hello.pb.go`文件
+
+
+
+下面开始编写server和client的代码。创建server和client目录，以及源码项目目录结构如下：
+
+```
+.
+├── GoProject
+│   ├── go.mod
+│   ├── go.sum
+│   ├── grpc_test
+│   │   ├── client
+│   │   │   └── client.go
+│   │   ├── proto
+│   │   │   ├── hello.pb.go
+│   │   │   └── hello.proto
+│   │   └── server
+│   │       └── server.go
+```
+
+
+
+`server.go`代码如下：
+
+```go
+package main
+
+import (
+	"GoProject/grpc_test/proto"
+	"context"
+	"google.golang.org/grpc"
+	"net"
+)
+
+type Server struct{}
+
+func (s *Server) SayHello(ctx context.Context, request *proto.HelloRequest) (*proto.HelloReply, error) {
+	return &proto.HelloReply{
+		Message: "hello" + request.Name,
+	}, nil
+}
+func main() {
+	g := grpc.NewServer()
+	proto.RegisterGreeterServer(g, &Server{})
+	lis, err := net.Listen("tcp", "0.0.0.0:50051")
+	if err != nil {
+		panic("failed to listen:" + err.Error())
+	}
+	err = g.Serve(lis)
+	if err != nil {
+		panic("failed to start grpc:" + err.Error())
+	}
+}
+```
+
+
+
+`client.go`代码如下。
+
+```go
+package main
+
+import (
+	"GoProject/grpc_test/proto"
+	"context"
+	"fmt"
+	"google.golang.org/grpc"
+)
+
+func main() {
+	conn, err := grpc.Dial("127.0.0.1:50051", grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+
+	c := proto.NewGreeterClient(conn)
+	r, err := c.SayHello(context.Background(), &proto.HelloRequest{Name: "World"})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(r.Message)
+}
+```
+
+
+
+> 只要proto文件一致，即可实用python的client调用go的server（反之亦然）
 
 
 
 
 
+## gRPC中的数据流
+
+gRPC中有四种数据流，分别是`简单模式（Simple RPC）` `服务端数据流模式（Server-side streaming RPC）` `客户端数据流模式（Client-side streaming RPC）` `双向数据流模式（Bidirectional streaming RPC）`
+
+`服务端数据流模式`是客户端发起一次请求，服务端返回一段连续的数据流。如Binance App向服务端发起ETH的查询请求，服务端就把ETH的实时数据远远不断返回给客户端。
+
+`客户端数据流模式`，如物联网终端向服务器报送数据。
+
+`双向数据流模式`，如聊天机器人。
 
 
 
+### 示例
+
+项目目录如下。
+
+```
+.
+├── GoProject
+│   ├── go.mod
+│   ├── go.sum
+│   └── stream_grpc_test
+│       ├── client
+│       │   └── client.go
+│       ├── proto
+│       │   └── stream.proto
+│       └── server
+│           └── server.go
+```
 
 
 
+`stream.proto`
+
+```protobuf
+syntax = "proto3";
+
+option go_package=".;proto";
+
+service Greeter {
+  rpc GetStream(StreamReqData) returns (stream StreamResData); // 服务端流模式
+  rpc PutStream(stream StreamReqData) returns (StreamResData); // 客户端流模式
+  rpc AllStream(stream StreamReqData) returns (stream StreamResData); // 双向流模式
+}
+
+message StreamReqData {
+  string data = 1;
+}
+
+message StreamResData {
+  string data = 1;
+}
+```
 
 
+
+生成proto文件：
+
+```
+protoc -I . stream.proto --go_out=plugins=grpc:.
+```
+
+
+
+{% folding 🌰 服务端流模式 %}
+
+`server.go`
+
+```go
+package main
+
+import (
+	"GinTest/stream_grpc_test/proto"
+	"fmt"
+	"google.golang.org/grpc"
+	"net"
+	"time"
+)
+
+const PORT = ":50052"
+
+type Server struct{}
+
+func (s *Server) GetStream(req *proto.StreamReqData, res proto.Greeter_GetStreamServer) error {
+	i := 0
+	for {
+		i++
+		_ = res.Send(&proto.StreamResData{Data: fmt.Sprintf("%v", time.Now().Unix())})
+		time.Sleep(time.Second)
+		if i >= 10 {
+			break
+		}
+	}
+
+	return nil
+}
+func (s *Server) PutStream(cliStr proto.Greeter_PutStreamServer) error {
+	return nil
+}
+func (s *Server) AllStream(allStr proto.Greeter_AllStreamServer) error {
+	return nil
+}
+
+func main() {
+	lis, err := net.Listen("tcp", PORT)
+	if err != nil {
+		panic(err)
+	}
+	s := grpc.NewServer()
+	proto.RegisterGreeterServer(s, &Server{})
+	err = s.Serve(lis)
+	if err != nil {
+		panic("failed to start grpc:" + err.Error())
+	}
+}
+```
+
+`client.go`
+
+```go
+package main
+
+import (
+	"GinTest/stream_grpc_test/proto"
+	"context"
+	"fmt"
+	"google.golang.org/grpc"
+)
+
+func main() {
+	conn, err := grpc.Dial("localhost:50052", grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+
+	c := proto.NewGreeterClient(conn)
+	res, _ := c.GetStream(context.Background(), &proto.StreamReqData{
+		Data: "ETH",
+	})
+	for {
+		a, err := res.Recv()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(a)
+	}
+}
+```
+
+
+
+{% endfolding %}
+
+
+
+{% folding 🌰客户端流模式 %}
+
+`server.go`
+
+```go
+func (s *Server) PutStream(cliStr proto.Greeter_PutStreamServer) error {
+	for {
+		if a, err := cliStr.Recv(); err != nil {
+			panic(err)
+		} else {
+			fmt.Println(a.Data)
+		}
+	}
+	return nil
+}
+```
+
+`client.go`
+
+```go
+package main
+
+import (
+	"GinTest/stream_grpc_test/proto"
+	"context"
+	"fmt"
+	"google.golang.org/grpc"
+	"time"
+)
+
+func main() {
+	conn, err := grpc.Dial("localhost:50052", grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+
+	c := proto.NewGreeterClient(conn)
+	
+	putS, _ := c.PutStream(context.Background())
+	i := 0
+	for {
+		i++
+		err := putS.Send(&proto.StreamReqData{
+			Data: fmt.Sprintf("%d", i),
+		})
+		if err != nil {
+			return
+		}
+		time.Sleep(time.Second)
+		if i >= 10 {
+			break
+		}
+	}
+}
+```
+
+{% endfolding %}
+
+
+
+{% folding 🌰双向流模式 %}
+
+`server.go`
+
+```go
+func (s *Server) AllStream(allStr proto.Greeter_AllStreamServer) error {
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		for {
+			data, _ := allStr.Recv()
+			fmt.Println("收到客户端消息：" + data.Data)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for {
+			_ = allStr.Send(&proto.StreamResData{Data: "我是服务器"})
+			time.Sleep(time.Second)
+		}
+	}()
+	wg.Wait()
+	return nil
+}
+```
+
+`client.go`
+
+```go
+allS, _ := c.AllStream(context.Background())
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		for {
+			data, _ := allS.Recv()
+			fmt.Println("收到客户端消息：" + data.Data)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for {
+			_ = allS.Send(&proto.StreamReqData{Data: "我是客户端"})
+			time.Sleep(time.Second)
+		}
+	}()
+	wg.Wait()
+```
+
+{% endfolding %}
 
 
 

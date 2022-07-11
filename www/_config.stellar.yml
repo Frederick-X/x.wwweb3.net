@@ -17,9 +17,9 @@ article:
     # '奇思妙想': '#009688'
     'web3': '#ff9800'
     '技术加油站': '#4caf50'
-    '开源库': '#4caf50'
+    'Telegram机器人': '#4caf50'
     '博客主题': '#ffa000'
-    # '应用程序': '#e91e63'
+    # '机器人': '#e91e63'
     '实用工具': '#009688'
   share: [wechat, weibo, email, link]
   related_posts:
